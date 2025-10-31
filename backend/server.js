@@ -1836,9 +1836,9 @@ AXIS: (doc, account, entries) => {
   applyDemoWatermark(doc);
 
   // --- Header: Axis Bank Logo ---
-  if (fs.existsSync(path.join(__dirname, "uploads", "AXIS.png"))) {
+  if (fs.existsSync(path.join(__dirname, "uploads", "Axis.png"))) {
     try {
-      doc.image(path.join(__dirname, "uploads", "AXIS.png"), 180, -58, { width: 250 });
+      doc.image(path.join(__dirname, "uploads", "Axis.png"), 180, -58, { width: 250 });
     } catch (e) { }
   } else {
     // Fallback logo
