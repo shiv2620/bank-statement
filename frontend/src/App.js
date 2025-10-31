@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const API = "http://localhost:5000";
+const API = "https://bank-statement-backend-5juy.onrender.com";
 
 // Config for each bank
 const BANK_CONFIG = {
