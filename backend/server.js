@@ -10,7 +10,12 @@ const multer = require("multer");
 const csv = require("csv-parser");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "https://bank-statement-frontend.onrender.com", // apna actual frontend Render URL daal
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
 app.use(bodyParser.json());
 
 const DB_FILE = path.join(__dirname, "data.db");
