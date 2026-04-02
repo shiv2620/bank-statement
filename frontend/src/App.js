@@ -154,6 +154,20 @@ const BANK_CONFIG = {
 },
 };
 
+// Numeric fields jinse comma hataana hai PDF bhejne se pehle
+const NUMERIC_FIELDS = [
+  "debit", "credit", "withdrawal", "deposit",
+  "balance", "amount", "opening_balance", "closing_balance",
+  "total_debit", "total_credit", "cleared_balance",
+  "uncleared_amount", "drawing_power", "mod_balance"
+];
+
+// Comma aur extra spaces clean karo numeric fields se
+const cleanNumeric = (value) => {
+  if (!value) return value;
+  return value.toString().replace(/,/g, "").trim();
+};
+
 function App() {
   const [bank, setBank] = useState("PNB");
   const [account, setAccount] = useState({});
@@ -185,18 +199,13 @@ function App() {
         throw new Error('Failed to download template');
       }
       
-      // Get the CSV content
       const blob = await response.blob();
-      
-      // Create a download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${bank}_Statement_Template.csv`;
       document.body.appendChild(a);
       a.click();
-      
-      // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
@@ -251,13 +260,27 @@ function App() {
   // Download PDF
   const downloadPDF = async () => {
     try {
+      // Transactions ke numeric fields se comma clean karo
+      const cleanTxns = transactions.map((txn) => {
+        const cleaned = { ...txn };
+        NUMERIC_FIELDS.forEach((f) => {
+          if (cleaned[f]) cleaned[f] = cleanNumeric(cleaned[f]);
+        });
+        return cleaned;
+      });
+
+      // Account fields ke numeric values bhi clean karo
+      const cleanAccount = { ...account };
+      NUMERIC_FIELDS.forEach((f) => {
+        if (cleanAccount[f]) cleanAccount[f] = cleanNumeric(cleanAccount[f]);
+      });
+
       const res = await axios.post(`${API}/api/generate-pdf`, {
         bank,
-        account,
-        transactions,
+        account: cleanAccount,
+        transactions: cleanTxns,
       }, { responseType: "blob" });
 
-      // Download the PDF
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -269,9 +292,16 @@ function App() {
     }
   };
 
-  // Totals
-  const totalDebit = transactions.reduce((sum, t) => sum + (parseFloat(t.debit || t.withdrawal) || 0), 0);
-  const totalCredit = transactions.reduce((sum, t) => sum + (parseFloat(t.credit || t.deposit) || 0), 0);
+  // Totals — commas handle karke calculate karo
+  const totalDebit = transactions.reduce((sum, t) => {
+    const val = parseFloat(cleanNumeric(t.debit || t.withdrawal)) || 0;
+    return sum + val;
+  }, 0);
+
+  const totalCredit = transactions.reduce((sum, t) => {
+    const val = parseFloat(cleanNumeric(t.credit || t.deposit)) || 0;
+    return sum + val;
+  }, 0);
 
   return (
     <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
