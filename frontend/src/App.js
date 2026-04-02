@@ -216,9 +216,35 @@ function App() {
     }
   };
 
+  // CSV frontend pe parse karo — raw string values preserve karne ke liye
+  const parseCSVRaw = (text, fields) => {
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l);
+    if (lines.length < 2) return [];
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = [];
+      let cur = "", inQuote = false;
+      for (const ch of lines[i]) {
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { cols.push(cur.trim()); cur = ""; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+      const row = {};
+      fields.forEach((f, idx) => { row[f] = cols[idx] !== undefined ? cols[idx] : ""; });
+      rows.push(row);
+    }
+    return rows;
+  };
+
   // CSV Upload
   const handleFileUpload = async () => {
     if (!file) return alert("Please select a file");
+
+    // Frontend pe bhi CSV read karo — original values preserve karne ke liye
+    const rawText = await file.text();
+    const rawTxns = parseCSVRaw(rawText, BANK_CONFIG[bank].fields);
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("bank", bank);
@@ -227,7 +253,19 @@ function App() {
       const res = await axios.post(`${API}/api/import-csv`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setTransactions(res.data.transactions || []);
+
+      // Backend se totals lo, lekin numeric fields mein raw CSV values rakho
+      const backendTxns = res.data.transactions || [];
+      const mergedTxns = backendTxns.map((btxn, i) => {
+        const raw = rawTxns[i] || {};
+        const merged = { ...btxn };
+        NUMERIC_FIELDS.forEach(f => {
+          if (raw[f] !== undefined && raw[f] !== "") merged[f] = raw[f];
+        });
+        return merged;
+      });
+
+      setTransactions(mergedTxns);
 
       alert(`CSV Uploaded! 
       Entries: ${res.data.count}
