@@ -260,25 +260,12 @@ function App() {
   // Download PDF
   const downloadPDF = async () => {
     try {
-      // Transactions ke numeric fields se comma clean karo
-      const cleanTxns = transactions.map((txn) => {
-        const cleaned = { ...txn };
-        NUMERIC_FIELDS.forEach((f) => {
-          if (cleaned[f]) cleaned[f] = cleanNumeric(cleaned[f]);
-        });
-        return cleaned;
-      });
-
-      // Account fields ke numeric values bhi clean karo
-      const cleanAccount = { ...account };
-      NUMERIC_FIELDS.forEach((f) => {
-        if (cleanAccount[f]) cleanAccount[f] = cleanNumeric(cleanAccount[f]);
-      });
-
+      // Transactions as-is bhejo — jo type kiya wahi PDF mein aayega
+      // "1,000" → "1,000" and "1000.00" → "1000.00"
       const res = await axios.post(`${API}/api/generate-pdf`, {
         bank,
-        account: cleanAccount,
-        transactions: cleanTxns,
+        account,
+        transactions,
       }, { responseType: "blob" });
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
